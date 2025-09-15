@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="aframe.min.js"></script>
+    <script src="mindar-image-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #audioControls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(50, 50, 50, 0.9));
+            padding: 20px;
+            border-radius: 25px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 90vw;
+        }
+
+        #audioControls.show {
+            display: block;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .audio-button {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            margin: 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-width: 120px;
+        }
+
+        .audio-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .audio-button:active {
+            transform: translateY(-1px);
+        }
+
+        .audio-button.playing {
+            background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        .audio-button.paused {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ffa500 100%);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(56, 239, 125, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 239, 125, 0);
+            }
+        }
+
+        .control-button {
+            background: linear-gradient(145deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 0 5px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: linear-gradient(145deg, #34495e 0%, #2c3e50 100%);
+            transform: scale(1.05);
+        }
+
+        .volume-control {
+            margin: 15px 0 10px 0;
+            text-align: center;
+        }
+
+        .volume-slider {
+            width: 200px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        #statusMessage {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 999;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .button-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .image-title {
+            color: #667eea;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="statusMessage">Apunta la cámara hacia cualquiera de las imágenes objetivo</div>
+
+    <a-scene 
+        mindar-image="imageTargetSrc: targets_3images.mind;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <!-- Imágenes objetivo -->
+            <img id="card1" src="card1.png" />
+            <img id="card2" src="card2.png" />
+            <img id="card3" src="card3.png" />
+            
+            <!-- Audios para Imagen 1 -->
+            <audio id="img1_audio1" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="img1_audio2" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="img1_audio3" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            
+            <!-- Audios para Imagen 2 -->
+            <audio id="img2_audio1" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="img2_audio2" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            
+            <!-- Audios para Imagen 3 -->
+            <audio id="img3_audio1" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="img3_audio2" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="img3_audio3" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="img3_audio4" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            
+            <!-- Modelos 3D -->
+            <a-asset-item id="model1" src="n.glb"></a-asset-item>
+            <a-asset-item id="model2" src="n2.glb"></a-asset-item>
+            <a-asset-item id="model3" src="n3.glb"></a-asset-item>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <!-- Target 1 -->
+        <a-entity mindar-image-target="targetIndex: 0" id="imageTarget1">
+            <a-plane src="#card1" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+            <a-gltf-model 
+                rotation="0 0 0" 
+                position="0 0 0.1" 
+                scale="0.005 0.005 0.005" 
+                src="#model1"
+                animation="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+            </a-gltf-model>
+            <a-text 
+                value="🎵 IMAGEN 1" 
+                position="0 0.4 0.1" 
+                align="center"
+                color="#ffffff"
+                scale="0.8 0.8 0.8">
+            </a-text>
+        </a-entity>
+
+        <!-- Target 2 -->
+        <a-entity mindar-image-target="targetIndex: 1" id="imageTarget2">
+            <a-plane src="#card2" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+            <a-gltf-model 
+                rotation="0 0 0" 
+                position="0 0 0.1" 
+                scale="0.003 0.003 0.003" 
+                src="#model2"
+                animation="property: rotation; to: 0 360 0; dur: 3000; loop: true">
+            </a-gltf-model>
+            <a-text 
+                value="🎶 IMAGEN 2" 
+                position="0 0.4 0.1" 
+                align="center"
+                color="#38ef7d"
+                scale="0.8 0.8 0.8">
+            </a-text>
+        </a-entity>
+
+        <!-- Target 3 -->
+        <a-entity mindar-image-target="targetIndex: 2" id="imageTarget3">
+            <a-plane src="#card3" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+            <a-gltf-model 
+                rotation="0 0 0" 
+                position="0 0 0.1" 
+                scale="0.007 0.007 0.007" 
+                src="#model3"
+                animation="property: scale; to: 0.009 0.009 0.009; dur: 2000; easing: easeInOutQuad; loop: true; dir: alternate">
+            </a-gltf-model>
+            <a-text 
+                value="🎸 IMAGEN 3" 
+                position="0 0.4 0.1" 
+                align="center"
+                color="#ff6b6b"
+                scale="0.8 0.8 0.8">
+            </a-text>
+        </a-entity>
+    </a-scene>
+
+    <!-- Controles de Audio -->
+    <div id="audioControls">
+        <div id="imageTitle" class="image-title"></div>
+        <div id="buttonsContainer" class="buttons-container"></div>
+
+        <div class="volume-control">
+            <label style="color: white; font-size: 14px;">🔊 Volumen:</label><br>
+            <input type="range" class="volume-slider" min="0" max="100" value="70" onchange="changeVolume(this.value)">
+        </div>
+
+        <div style="margin-top: 15px; text-align: center;">
+            <button class="control-button" onclick="pauseAll()">⏸️ Pausar Todo</button>
+            <button class="control-button" onclick="stopAll()">⏹️ Detener Todo</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuración de imágenes y audios
+        const imageConfigs = {
+            0: {
+                title: "🎵 Imagen Musical",
+                audios: [
+                    { id: 'img1_audio1', label: '🎵 Melodía 1' },
+                    { id: 'img1_audio2', label: '🎶 Armonía' },
+                    { id: 'img1_audio3', label: '🎼 Sinfonía' }
+                ]
+            },
+            1: {
+                title: "🎸 Imagen Rockera", 
+                audios: [
+                    { id: 'img2_audio1', label: '🎸 Rock Clásico' },
+                    { id: 'img2_audio2', label: '🥁 Solo Batería' }
+                ]
+            },
+            2: {
+                title: "🎺 Imagen Orquestal",
+                audios: [
+                    { id: 'img3_audio1', label: '🎺 Trompeta' },
+                    { id: 'img3_audio2', label: '🎻 Violín' },
+                    { id: 'img3_audio3', label: '🎹 Piano' },
+                    { id: 'img3_audio4', label: '🎵 Coro' }
+                ]
+            }
+        };
+
+        let currentAudio = null;
+        let currentButton = null;
+        let currentImageIndex = null;
+
+        // Sistema de gestión de audio mejorado
+        class MultiImageAudioController {
+            constructor() {
+                this.allAudios = {};
+                this.volume = 0.7;
+                this.setupAllAudios();
+            }
+
+            setupAllAudios() {
+                // Recopilar todos los audios de todas las configuraciones
+                Object.values(imageConfigs).forEach(config => {
+                    config.audios.forEach(audioConfig => {
+                        const audioElement = document.getElementById(audioConfig.id);
+                        if (audioElement) {
+                            this.allAudios[audioConfig.id] = audioElement;
+                            audioElement.loop = false;
+                            audioElement.volume = this.volume;
+                            
+                            audioElement.addEventListener('ended', () => {
+                                this.onAudioEnded(audioElement, audioConfig.id);
+                            });
+                        }
+                    });
+                });
+            }
+
+            onAudioEnded(audio, audioId) {
+                const button = document.querySelector(`[data-audio="${audioId}"]`);
+                if (button) {
+                    button.classList.remove('playing', 'paused');
+                }
+                if (currentAudio === audio) {
+                    currentAudio = null;
+                    currentButton = null;
+                }
+            }
+
+            play(audioId) {
+                // Pausar audio actual si es diferente
+                if (currentAudio && this.allAudios[audioId] !== currentAudio) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    if (currentButton) {
+                        currentButton.classList.remove('playing', 'paused');
+                    }
+                }
+
+                const audio = this.allAudios[audioId];
+                if (audio) {
+                    if (audio.paused) {
+                        audio.play().catch(console.error);
+                        return 'playing';
+                    } else {
+                        audio.pause();
+                        return 'paused';
+                    }
+                }
+                return 'stopped';
+            }
+
+            pauseAll() {
+                Object.values(this.allAudios).forEach(audio => {
+                    if (audio && !audio.paused) {
+                        audio.pause();
+                    }
+                });
+                
+                document.querySelectorAll('.audio-button').forEach(btn => {
+                    btn.classList.remove('playing');
+                    btn.classList.add('paused');
+                });
+            }
+
+            stopAll() {
+                Object.values(this.allAudios).forEach(audio => {
+                    if (audio) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                });
+
+                document.querySelectorAll('.audio-button').forEach(btn => {
+                    btn.classList.remove('playing', 'paused');
+                });
+                
+                currentAudio = null;
+                currentButton = null;
+            }
+
+            setVolume(volume) {
+                this.volume = volume / 100;
+                Object.values(this.allAudios).forEach(audio => {
+                    if (audio) {
+                        audio.volume = this.volume;
+                    }
+                });
+            }
+        }
+
+        // Inicializar controlador
+        const audioController = new MultiImageAudioController();
+
+        // Función para actualizar la UI según la imagen detectada
+        function updateUIForImage(imageIndex) {
+            const config = imageConfigs[imageIndex];
+            if (!config) return;
+
+            currentImageIndex = imageIndex;
+            
+            // Actualizar título
+            document.getElementById('imageTitle').textContent = config.title;
+            
+            // Limpiar botones existentes
+            const buttonsContainer = document.getElementById('buttonsContainer');
+            buttonsContainer.innerHTML = '';
+            
+            // Crear botones específicos para esta imagen
+            config.audios.forEach(audioConfig => {
+                const button = document.createElement('button');
+                button.className = 'audio-button';
+                button.textContent = audioConfig.label;
+                button.setAttribute('data-audio', audioConfig.id);
+                button.onclick = () => playAudio(audioConfig.id, button);
+                buttonsContainer.appendChild(button);
+            });
+        }
+
+        // Funciones globales
+        function playAudio(audioId, buttonElement) {
+            const state = audioController.play(audioId);
+            currentAudio = audioController.allAudios[audioId];
+            currentButton = buttonElement;
+
+            // Actualizar UI del botón
+            document.querySelectorAll('.audio-button').forEach(btn => {
+                btn.classList.remove('playing', 'paused');
+            });
+
+            if (state === 'playing') {
+                buttonElement.classList.add('playing');
+                showMessage('🎵 Reproduciendo: ' + buttonElement.textContent);
+            } else if (state === 'paused') {
+                buttonElement.classList.add('paused');
+                showMessage('⏸️ Pausado: ' + buttonElement.textContent);
+            }
+        }
+
+        function pauseAll() {
+            audioController.pauseAll();
+            showMessage('⏸️ Todos los audios pausados');
+        }
+
+        function stopAll() {
+            audioController.stopAll();
+            showMessage('⏹️ Todos los audios detenidos');
+        }
+
+        function changeVolume(value) {
+            audioController.setVolume(value);
+            showMessage('🔊 Volumen: ' + value + '%');
+        }
+
+        function showMessage(text) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = text;
+            statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 2000);
+        }
+
+        // Event listeners para detección de múltiples imágenes
+        document.addEventListener('DOMContentLoaded', function() {
+            const audioControls = document.getElementById('audioControls');
+
+            // Configurar eventos para cada target de imagen
+            Object.keys(imageConfigs).forEach(targetIndex => {
+                const imageTarget = document.getElementById(`imageTarget${parseInt(targetIndex) + 1}`);
+                
+                if (imageTarget) {
+                    imageTarget.addEventListener('targetFound', function() {
+                        console.log(`🎯 Imagen ${parseInt(targetIndex) + 1} encontrada`);
+                        updateUIForImage(parseInt(targetIndex));
+                        audioControls.classList.add('show');
+                        showMessage(`✅ Imagen ${parseInt(targetIndex) + 1} detectada`);
+                    });
+
+                    imageTarget.addEventListener('targetLost', function() {
+                        console.log(`📍 Imagen ${parseInt(targetIndex) + 1} perdida`);
+                        audioControls.classList.remove('show');
+                        showMessage(`❌ Imagen ${parseInt(targetIndex) + 1} perdida`);
+                        currentImageIndex = null;
+                    });
+                }
+            });
+
+            showMessage('📱 Apunta la cámara hacia cualquier imagen objetivo');
+        });
+
+        console.log(`
+🎵 Multi-Image AR Audio Controller
+
+📋 Características:
+• Reconoce múltiples imágenes objetivo
+• Cada imagen tiene sus propios audios y botones
+• Títulos personalizados para cada imagen
+• Sistema de audio independiente por imagen
+• Controles globales de volumen, pausa y stop
+• 🔒 MENÚS PERSISTENTES: Se mantienen visibles hasta detectar nueva imagen
+
+🎮 Configuración actual:
+• Imagen 1: ${imageConfigs[0].audios.length} audios
+• Imagen 2: ${imageConfigs[1].audios.length} audios  
+• Imagen 3: ${imageConfigs[2].audios.length} audios
+
+🔄 Comportamiento de menús:
+• Al detectar imagen: Se muestran menús específicos
+• Al perder imagen: Menús permanecen fijos en pantalla
+• Al detectar nueva imagen: Se actualizan menús automáticamente
+• Solo se ocultan si no se ha detectado ninguna imagen aún
+
+💡 Para personalizar:
+1. Reemplaza los archivos de audio (.mp3)
+2. Actualiza imageConfigs con tus títulos y labels
+3. Modifica targets.mind con tus imágenes objetivo
+4. Ajusta los modelos 3D según necesites
+        `);
+    </script>
+</body>
+</html>
+
+

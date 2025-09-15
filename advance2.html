@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="aframe.min.js"></script>
+    <script src="mindar-image-aframe.prod.js"></script>
+
+    <script>
+      const showInfo = (targetIndex) => {
+        const profileButton = document.querySelector(`#profile-button-${targetIndex}`);
+        const audioButton1 = document.querySelector(`#audio-button1-${targetIndex}`);
+        const audioButton2 = document.querySelector(`#audio-button2-${targetIndex}`);
+        const audioButton3 = document.querySelector(`#audio-button3-${targetIndex}`);
+        const text = document.querySelector(`#text-${targetIndex}`);
+
+        // Mostrar botones con animación secuencial
+        profileButton.setAttribute("visible", true);
+        setTimeout(() => {
+          audioButton1.setAttribute("visible", true);
+        }, 300);
+        setTimeout(() => {
+          audioButton2.setAttribute("visible", true);
+        }, 600);
+        setTimeout(() => {
+          audioButton3.setAttribute("visible", true);
+        }, 900);
+
+        let currentTab = '';
+        
+        // Configurar eventos de los botones
+        profileButton.addEventListener('click', function (evt) {
+          text.setAttribute("value", `Información de la Tarjeta ${targetIndex + 1}`);
+          currentTab = 'profile';
+        });
+
+        audioButton1.addEventListener('click', function (evt) {
+          const audio = document.querySelector(`#audio1-${targetIndex}`);
+          audio.play();
+          text.setAttribute("value", "Reproduciendo Audio 1");
+          currentTab = 'audio1';
+        });
+
+        audioButton2.addEventListener('click', function (evt) {
+          const audio = document.querySelector(`#audio2-${targetIndex}`);
+          audio.play();
+          text.setAttribute("value", "Reproduciendo Audio 2");
+          currentTab = 'audio2';
+        });
+
+        audioButton3.addEventListener('click', function (evt) {
+          const audio = document.querySelector(`#audio3-${targetIndex}`);
+          audio.play();
+          text.setAttribute("value", "Reproduciendo Audio 3");
+          currentTab = 'audio3';
+        });
+      }
+
+      const showAvatar = (targetIndex, onDone) => {
+        const avatar = document.querySelector(`#avatar-${targetIndex}`);
+        let z = -0.3;
+        const id = setInterval(() => {
+          z += 0.008;
+          if (z >= 0.3) {
+            clearInterval(id);
+            onDone();
+          }
+          avatar.setAttribute("position", "0 -0.25 " + z);
+        }, 10);
+      }
+
+      // Registrar componente para cada target
+      AFRAME.registerComponent('target0', {
+        init: function () {
+          this.el.addEventListener('targetFound', event => {
+            console.log("target 0 found");
+            showAvatar(0, () => {
+              setTimeout(() => {
+                showInfo(0);
+              }, 300);
+            });
+          });
+        }
+      });
+
+      AFRAME.registerComponent('target1', {
+        init: function () {
+          this.el.addEventListener('targetFound', event => {
+            console.log("target 1 found");
+            showAvatar(1, () => {
+              setTimeout(() => {
+                showInfo(1);
+              }, 300);
+            });
+          });
+        }
+      });
+
+      AFRAME.registerComponent('target2', {
+        init: function () {
+          this.el.addEventListener('targetFound', event => {
+            console.log("target 2 found");
+            showAvatar(2, () => {
+              setTimeout(() => {
+                showInfo(2);
+              }, 300);
+            });
+          });
+        }
+      });
+    </script>
+
+    <style>
+      body {
+        margin: 0;
+      }
+      .example-container {
+        overflow: hidden;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+      }
+      #example-scanning-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: transparent;
+        z-index: 2;
+      }
+      
+      @media (min-aspect-ratio: 1/1) {
+        #example-scanning-overlay .inner {
+          width: 50vh;
+          height: 50vh;
+        }
+      }
+      @media (max-aspect-ratio: 1/1) {
+        #example-scanning-overlay .inner {
+          width: 80vw;
+          height: 80vw;
+        }
+      }
+
+      #example-scanning-overlay .inner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        background:
+          linear-gradient(to right, white 10px, transparent 10px) 0 0,
+          linear-gradient(to right, white 10px, transparent 10px) 0 100%,
+          linear-gradient(to left, white 10px, transparent 10px) 100% 0,
+          linear-gradient(to left, white 10px, transparent 10px) 100% 100%,
+          linear-gradient(to bottom, white 10px, transparent 10px) 0 0,
+          linear-gradient(to bottom, white 10px, transparent 10px) 100% 0,
+          linear-gradient(to top, white 10px, transparent 10px) 0 100%,
+          linear-gradient(to top, white 10px, transparent 10px) 100% 100%;
+        background-repeat: no-repeat;
+        background-size: 40px 40px;
+      }
+
+      #example-scanning-overlay.hidden {
+        display: none;
+      }
+
+      #example-scanning-overlay .inner .scanline {
+        position: absolute;
+        width: 100%;
+        height: 10px;
+        background: white;
+        animation: move 2s linear infinite;
+      }
+      
+      @keyframes move {
+        0%, 100% { top: 0% }
+        50% { top: calc(100% - 10px) }
+      }
+
+      .scan-text {
+        position: absolute;
+        bottom: -60px;
+        color: white;
+        font-family: Arial, sans-serif;
+        font-size: 18px;
+        text-align: center;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="example-container">
+      <div id="example-scanning-overlay">
+        <div class="inner">
+          <div class="scanline"></div>
+          <div class="scan-text">Apunta la cámara hacia una de las 3 imágenes</div>
+        </div>
+      </div>
+
+      <a-scene 
+        mindar-image="imageTargetSrc: targets_3imagesV2.mind; maxTrack: 3;  missTolerance: 10;warmupTolerance: 1;filterMinCF:0.1; filterBeta: 10;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+          <!-- Imágenes de las tarjetas (reemplaza con tus imágenes) -->
+          <img id="card1" src="card1.png" />
+          <img id="card2" src="card2.png" />
+          <img id="card3" src="card3.png" />
+          
+          <!-- Íconos para los botones (usando placeholders, reemplaza con tus íconos) -->
+          <img id="icon-profile" src="card1.png" />
+          <img id="icon-audio1" src="card1.png" />
+          <img id="icon-audio2" src="card1.png" />
+          <img id="icon-audio3" src="card1.png" />
+          
+          <!-- Archivos de audio (reemplaza con tus audios) -->
+          <audio id="audio1-0" src="Dance_on_Air.mp3" preload="auto"></audio>
+          <audio id="audio2-0" src="Dance_on_Air.mp3" preload="auto"></audio>
+          <audio id="audio3-0" src="Dance_on_Air.mp3" preload="auto"></audio>
+          
+          <audio id="audio1-1" src="Dance_on_Air.mp3" preload="auto"></audio>
+          <audio id="audio2-1" src="Dance_on_Air.mp3" preload="auto"></audio>
+          <audio id="audio3-1" src="Dance_on_Air.mp3" preload="auto"></audio>
+          
+          <audio id="audio1-2" src="Dance_on_Air.mp3" preload="auto"></audio>
+          <audio id="audio2-2" src="Dance_on_Air.mp3" preload="auto"></audio>
+          <audio id="audio3-2" src="Dance_on_Air.mp3" preload="auto"></audio>
+          
+          <!-- Modelo 3D del avatar -->
+          <a-asset-item id="avatarModel" src="n.glb"></a-asset-item>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable">
+        </a-camera>
+
+        <!-- TARGET 1 -->
+        <a-entity id="target0" target0 mindar-image-target="targetIndex: 0">
+          <a-plane src="#card1" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+
+          <a-image visible=false id="profile-button-0" class="clickable" src="#icon-profile" position="-0.42 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button1-0" class="clickable" src="#icon-audio1" position="-0.14 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button2-0" class="clickable" src="#icon-audio2" position="0.14 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button3-0" class="clickable" src="#icon-audio3" position="0.42 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-gltf-model id="avatar-0" rotation="0 0 0" position="0 -0.25 0" scale="0.004 0.004 0.004" src="#avatarModel"></a-gltf-model>
+
+          <a-text id="text-0" class="clickable" value="" color="black" align="center" width="2" position="0 -1 0" geometry="primitive:plane; height: 0.1; width: 2;" material="opacity: 0.5"></a-text>
+        </a-entity>
+
+        <!-- TARGET 2 -->
+        <a-entity id="target1" target1 mindar-image-target="targetIndex: 1">
+          <a-plane src="#card2" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+
+          <a-image visible=false id="profile-button-1" class="clickable" src="#icon-profile" position="-0.42 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button1-1" class="clickable" src="#icon-audio1" position="-0.14 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button2-1" class="clickable" src="#icon-audio2" position="0.14 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button3-1" class="clickable" src="#icon-audio3" position="0.42 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-gltf-model id="avatar-1" rotation="0 0 0" position="0 -0.25 0" scale="0.004 0.004 0.004" src="#avatarModel"></a-gltf-model>
+
+          <a-text id="text-1" class="clickable" value="" color="black" align="center" width="2" position="0 -1 0" geometry="primitive:plane; height: 0.1; width: 2;" material="opacity: 0.5"></a-text>
+        </a-entity>
+
+        <!-- TARGET 3 -->
+        <a-entity id="target2" target2 mindar-image-target="targetIndex: 2">
+          <a-plane src="#card3" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+
+          <a-image visible=false id="profile-button-2" class="clickable" src="#icon-profile" position="-0.42 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button1-2" class="clickable" src="#icon-audio1" position="-0.14 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button2-2" class="clickable" src="#icon-audio2" position="0.14 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-image visible=false id="audio-button3-2" class="clickable" src="#icon-audio3" position="0.42 -0.5 0" height="0.15" width="0.15"
+            animation="property: scale; to: 1.2 1.2 1.2; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+          </a-image>
+
+          <a-gltf-model id="avatar-2" rotation="0 0 0" position="0 -0.25 0" scale="0.004 0.004 0.004" src="#avatarModel"></a-gltf-model>
+
+          <a-text id="text-2" class="clickable" value="" color="black" align="center" width="2" position="0 -1 0" geometry="primitive:plane; height: 0.1; width: 2;" material="opacity: 0.5"></a-text>
+        </a-entity>
+      </a-scene>
+    </div>
+  </body>
+</html>

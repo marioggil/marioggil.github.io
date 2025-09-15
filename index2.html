@@ -1,0 +1,465 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="aframe.min.js"></script>
+    <script src="mindar-image-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #audioControls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(50, 50, 50, 0.9));
+            padding: 20px;
+            border-radius: 25px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #audioControls.show {
+            display: block;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateX(-50%) translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .audio-button {
+            background: linear-gradient(145deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 25px;
+            margin: 0 8px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-width: 120px;
+        }
+
+        .audio-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .audio-button:active {
+            transform: translateY(-1px);
+        }
+
+        .audio-button.playing {
+            background: linear-gradient(145deg, #11998e 0%, #38ef7d 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        .audio-button.paused {
+            background: linear-gradient(145deg, #ff6b6b 0%, #ffa500 100%);
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(56, 239, 125, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(56, 239, 125, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(56, 239, 125, 0);
+            }
+        }
+
+        .control-button {
+            background: linear-gradient(145deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            margin: 0 5px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .control-button:hover {
+            background: linear-gradient(145deg, #34495e 0%, #2c3e50 100%);
+            transform: scale(1.05);
+        }
+
+        .volume-control {
+            margin: 15px 0 10px 0;
+            text-align: center;
+        }
+
+        .volume-slider {
+            width: 200px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .volume-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        #statusMessage {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            z-index: 999;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .button-label {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 12px;
+            text-align: center;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="statusMessage">Apunta la cámara hacia la imagen objetivo</div>
+
+    <a-scene 
+        mindar-image="imageTargetSrc: card.mind;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <img id="card" src="card.png" />
+            
+            <!-- Audios de ejemplo (reemplaza con tus archivos) -->
+            <audio id="audio1" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="audio2" preload="auto" crossorigin="anonymous">
+                <source src="Dance_on_Air_Version_joropo.mp3" type="audio/mpeg">
+            </audio>
+            <audio id="audio3" preload="auto" crossorigin="anonymous">
+                <source src="data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmAaBC6Uz/LJbyUHJHfH8N2QQAoUXr" type="audio/wav">
+            </audio>
+            <a-asset-item id="avatarModel" src="scene.gltf"></a-asset-item>
+        </a-assets>
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0" id="imageTarget">
+            <a-plane src="#card" position="0 0 0" height="0.552" width="1" rotation="0 0 0"></a-plane>
+            <a-gltf-model rotation="0 0 0 " position="0 0 0.1" scale="0.005 0.005 0.005" src="#avatarModel" animation="property: position; to: 0 0.1 0.1; dur: 1000; easing: easeInOutQuad; loop: true; dir: alternate">
+
+                <!-- Modelo 3D con animaciones mejoradas -->
+<!--             <a-box
+                position="0 0 0.1" 
+                scale="0.3 0.3 0.3" 
+                color="#667eea"
+                material="roughness: 0.3; metalness: 0.7"
+                animation__rotate="property: rotation; to: 0 360 0; dur: 4000; loop: true"
+                animation__float="property: position; to: 0 0.1 0.1; dur: 2000; easing: easeInOutQuad; loop: true; dir: alternate">
+            </a-box>
+
+            
+            <a-ring 
+                position="0 0 0.05" 
+                radius-inner="0.4" 
+                radius-outer="0.5" 
+                color="#38ef7d"
+                material="opacity: 0.7; transparent: true"
+                animation="property: rotation; to: 0 0 -360; dur: 6000; loop: true">
+            </a-ring> -->
+
+            <a-text 
+                value="🎵 AUDIO INTERACTIVO" 
+                position="0 0.4 0.1" 
+                align="center"
+                color="#ffffff"
+                scale="0.8 0.8 0.8">
+            </a-text>
+        </a-entity>
+    </a-scene>
+
+    <!-- Controles de Audio -->
+    <div id="audioControls">
+        <div class="button-label">Selecciona un audio:</div>
+        
+        <div style="margin: 15px 0;">
+            <button class="audio-button" onclick="playAudio('audio1', this)" data-audio="audio1">
+                Cancion
+            </button>
+            <button class="audio-button" onclick="playAudio('audio2', this)" data-audio="audio2">
+                🎶 Audio 2  
+            </button>
+            <button class="audio-button" onclick="playAudio('audio3', this)" data-audio="audio3">
+                🎸 Audio 3
+            </button>
+        </div>
+
+        <div class="volume-control">
+            <label style="color: white; font-size: 14px;">🔊 Volumen:</label><br>
+            <input type="range" class="volume-slider" min="0" max="100" value="70" onchange="changeVolume(this.value)">
+        </div>
+
+        <div style="margin-top: 15px; text-align: center;">
+            <button class="control-button" onclick="pauseAll()">⏸️ Pausar Todo</button>
+            <button class="control-button" onclick="stopAll()">⏹️ Detener Todo</button>
+        </div>
+    </div>
+
+    <script>
+        let currentAudio = null;
+        let currentButton = null;
+        let isImageVisible = false;
+
+        // Sistema de gestión de audio
+        class AudioController {
+            constructor() {
+                this.audios = {
+                    audio1: document.getElementById('audio1'),
+                    audio2: document.getElementById('audio2'),
+                    audio3: document.getElementById('audio3')
+                };
+                this.volume = 0.7;
+                this.setupAudios();
+            }
+
+            setupAudios() {
+                Object.values(this.audios).forEach(audio => {
+                    if (audio) {
+                        audio.loop = false;
+                        audio.volume = this.volume;
+                        
+                        // Event listeners para cada audio
+                        audio.addEventListener('ended', () => {
+                            this.onAudioEnded(audio);
+                        });
+
+                        audio.addEventListener('play', () => {
+                            console.log('🎵 Audio iniciado');
+                        });
+
+                        audio.addEventListener('pause', () => {
+                            console.log('⏸️ Audio pausado');
+                        });
+                    }
+                });
+            }
+
+            onAudioEnded(audio) {
+                // Resetear botón cuando el audio termina
+                const buttons = document.querySelectorAll('.audio-button');
+                buttons.forEach(btn => {
+                    if (btn.dataset.audio && this.audios[btn.dataset.audio] === audio) {
+                        btn.classList.remove('playing', 'paused');
+                        btn.innerHTML = btn.innerHTML.replace('⏸️', '▶️').replace('▶️', btn.innerHTML.split(' ')[0]);
+                    }
+                });
+            }
+
+            play(audioId) {
+                // Pausar audio actual si existe
+                if (currentAudio && currentAudio !== this.audios[audioId]) {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                    if (currentButton) {
+                        currentButton.classList.remove('playing', 'paused');
+                    }
+                }
+
+                const audio = this.audios[audioId];
+                if (audio) {
+                    if (audio.paused) {
+                        audio.play().catch(console.error);
+                        return 'playing';
+                    } else {
+                        audio.pause();
+                        return 'paused';
+                    }
+                }
+                return 'stopped';
+            }
+
+            pauseAll() {
+                Object.values(this.audios).forEach(audio => {
+                    if (audio && !audio.paused) {
+                        audio.pause();
+                    }
+                });
+                
+                document.querySelectorAll('.audio-button').forEach(btn => {
+                    btn.classList.remove('playing');
+                    btn.classList.add('paused');
+                });
+            }
+
+            stopAll() {
+                Object.values(this.audios).forEach(audio => {
+                    if (audio) {
+                        audio.pause();
+                        audio.currentTime = 0;
+                    }
+                });
+
+                document.querySelectorAll('.audio-button').forEach(btn => {
+                    btn.classList.remove('playing', 'paused');
+                });
+                
+                currentAudio = null;
+                currentButton = null;
+            }
+
+            setVolume(volume) {
+                this.volume = volume / 100;
+                Object.values(this.audios).forEach(audio => {
+                    if (audio) {
+                        audio.volume = this.volume;
+                    }
+                });
+            }
+        }
+
+        // Inicializar controlador de audio
+        const audioController = new AudioController();
+
+        // Funciones globales
+        function playAudio(audioId, buttonElement) {
+            if (!isImageVisible) {
+                showMessage('⚠️ Primero detecta la imagen objetivo');
+                return;
+            }
+
+            const state = audioController.play(audioId);
+            currentAudio = audioController.audios[audioId];
+            currentButton = buttonElement;
+
+            // Actualizar UI del botón
+            document.querySelectorAll('.audio-button').forEach(btn => {
+                btn.classList.remove('playing', 'paused');
+            });
+
+            if (state === 'playing') {
+                buttonElement.classList.add('playing');
+                showMessage('🎵 Reproduciendo: ' + buttonElement.textContent);
+            } else if (state === 'paused') {
+                buttonElement.classList.add('paused');
+                showMessage('⏸️ Pausado: ' + buttonElement.textContent);
+            }
+        }
+
+        function pauseAll() {
+            audioController.pauseAll();
+            showMessage('⏸️ Todos los audios pausados');
+        }
+
+        function stopAll() {
+            audioController.stopAll();
+            showMessage('⏹️ Todos los audios detenidos');
+        }
+
+        function changeVolume(value) {
+            audioController.setVolume(value);
+            showMessage('🔊 Volumen: ' + value + '%');
+        }
+
+        function showMessage(text) {
+            const statusMessage = document.getElementById('statusMessage');
+            statusMessage.textContent = text;
+            statusMessage.style.display = 'block';
+            
+            setTimeout(() => {
+                statusMessage.style.display = 'none';
+            }, 2000);
+        }
+
+        // Event listeners para detección de imagen
+        document.addEventListener('DOMContentLoaded', function() {
+            const imageTarget = document.getElementById('imageTarget');
+            const audioControls = document.getElementById('audioControls');
+
+            if (imageTarget) {
+                imageTarget.addEventListener('targetFound', function() {
+                    console.log('🎯 Imagen objetivo encontrada');
+                    isImageVisible = true;
+                    audioControls.classList.add('show');
+                    showMessage('✅ Imagen detectada - Controles activados');
+                });
+
+                imageTarget.addEventListener('targetLost', function() {
+                    console.log('📍 Imagen objetivo perdida');
+                    isImageVisible = false;
+                    audioControls.classList.remove('show');
+                    showMessage('❌ Imagen perdida - Controles desactivados');
+                    
+                    // Opcional: pausar audio cuando se pierde la imagen
+                    // audioController.pauseAll();
+                });
+            }
+
+            showMessage('📱 Apunta la cámara hacia la imagen objetivo');
+        });
+
+        console.log(`
+🎵 MindAR Audio Controller - Instrucciones:
+
+📋 Funciones:
+• Detecta la imagen objetivo para activar controles
+• 3 botones de audio diferentes
+• Control de volumen deslizante
+• Botones para pausar/detener todo
+• Visual feedback en tiempo real
+
+🎮 Controles:
+• 🎵 Audio 1/2/3: Reproduce/pausa audio específico
+• ⏸️ Pausar Todo: Pausa todos los audios
+• ⏹️ Detener Todo: Detiene y reinicia todos los audios
+• 🔊 Volumen: Control deslizante de 0-100%
+
+💡 Notas:
+• Los controles solo aparecen cuando se detecta la imagen
+• Un solo audio puede reproducirse a la vez
+• Los audios son de ejemplo - reemplázalos con tus archivos
+        `);
+    </script>
+</body>
+</html>
